@@ -1,4 +1,5 @@
 ﻿using AdminLTE2.Data;
+using AdminLTE2.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -17,25 +18,65 @@ namespace AdminLTE2.Controllers
             var products = _context.products.Include(p => p.Product_Categories).ToList();
             return View(products);
         }
-        public IActionResult Create()
+
+        // GET: CountriesController/Create
+        public ActionResult Create()
         {
-            ViewData["product_id"] = new SelectList(_context.products, "product_id", "product_name");
             return View();
         }
-        public IActionResult Edit(int? id)
+
+        // POST: CountriesController/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Products products, string id)
         {
-            if (id == null)
+
+            if (ModelState.IsValid)
             {
-                return NotFound();
+                if (id == "add")
+                {
+
+                    await _context.products.AddAsync(products);
+                    await _context.SaveChangesAsync();
+
+                    TempData["mensaje"] = "El Pais se guardo correctamente";
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    _context.products.Update(products);
+                    await _context.SaveChangesAsync();
+
+                    TempData["mensaje"] = "Cambios guardados correctamente";
+                    return RedirectToAction(nameof(Index), new { id = "" });
+                }
             }
 
-            var contacts = _context.products.Find(id);
-            if (contacts == null)
+            return View(products);
+        }
+
+        [HttpDelete]
+        public ActionResult Delete(string id)
+        {
+            var reg = _context.products.Find(id);
+            if (reg == null)
             {
-                return NotFound();
+                return Json(new { success = false, message = "Algo salió mal... inténtalo de nuevo." });
             }
-            ViewData["product_id"] = new SelectList(_context.products, "product_id", "product_name", contacts.product_id);
-            return View(contacts);
+            else
+            {
+
+                _context.products.Remove(reg);
+                _context.SaveChanges();
+                return Json(new { success = true, message = "Pais eliminada exitosamente." });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerDatos()
+        {
+            var todos = await _context.products.Include(c => c.product_name).ToListAsync();
+            return Json(new { data = todos });
         }
     }
 }
